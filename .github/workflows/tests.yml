@@ -57,9 +57,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         run: coverage lcov
 
-      - name: Coveralls
-        uses: coverallsapp/github-action@master
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+      - name: Submit coverage report
+        uses: romeovs/lcov-reporter-action@v0.4.0
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path-to-lcov: coverage.lcov
+          lcov-file: coverage.lcov

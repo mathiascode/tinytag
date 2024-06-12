@@ -58,6 +58,7 @@ jobs:
         run: coverage lcov
 
       - name: Submit coverage report
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         uses: romeovs/lcov-reporter-action@v0.4.0
         with:
           lcov-file: coverage.lcov

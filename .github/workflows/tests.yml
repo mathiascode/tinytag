@@ -46,7 +46,7 @@ jobs:
           python -m mypy -p tinytag
 
       - name: Unit tests
-        run: python -m pytest --cov
+        run: python -m pytest --cov-report "xml:coverage.xml" --cov
         env:
           TINYTAG_DEBUG: true
 
@@ -58,5 +58,7 @@ jobs:
         run: coverage lcov
 
       - name: Submit coverage report
-        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: ./coverage.xml

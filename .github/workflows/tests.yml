@@ -53,13 +53,15 @@ jobs:
       - name: Build package
         run: python -m build
 
-      - name: Coverage report
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
-        run: coverage lcov
-
       - name: Submit coverage report
-        if: matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
         uses: MishaKav/pytest-coverage-comment@main
         with:
           pytest-xml-coverage-path: ./coverage.xml
-          hide-comment: github.event_name == 'push'
+
+      - name: Submit coverage report
+        if: github.event_name == 'push' && matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-xml-coverage-path: ./coverage.xml
+          hide-comment: true

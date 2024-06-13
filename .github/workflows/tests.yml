@@ -59,7 +59,4 @@ jobs:
 
       - name: Submit coverage report
         if: github.event_name == 'pull_request' && matrix.os == 'ubuntu-latest' && matrix.python == '3.12'
-        uses: romeovs/lcov-reporter-action@v0.4.0
-        with:
-          lcov-file: coverage.lcov
-          delete-old-comments: true
+        uses: MishaKav/pytest-coverage-comment@main

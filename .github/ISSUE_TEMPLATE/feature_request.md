@@ -1,14 +1,14 @@
-<!--
-SPDX-FileCopyrightText: 2021-2024 tinytag Contributors
-SPDX-License-Identifier: MIT
--->
-
 ---
 name: Feature request
 about: Suggest an idea for this project
 labels: enhancement
 
 ---
+
+<!--
+SPDX-FileCopyrightText: 2021-2024 tinytag Contributors
+SPDX-License-Identifier: MIT
+-->
 
 **Is your feature request related to a problem? Please describe.**
 A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]

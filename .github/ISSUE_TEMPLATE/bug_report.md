@@ -1,14 +1,14 @@
-<!--
-SPDX-FileCopyrightText: 2021-2024 tinytag Contributors
-SPDX-License-Identifier: MIT
--->
-
 ---
 name: Bug report
 about: Something is broken or doesn't work as expected
 labels: bug
 
 ---
+
+<!--
+SPDX-FileCopyrightText: 2021-2024 tinytag Contributors
+SPDX-License-Identifier: MIT
+-->
 
 **Describe the bug**
 A clear and concise description of what the bug is.

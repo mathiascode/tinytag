@@ -58,9 +58,9 @@ jobs:
 
       - name: Coverage report
         run: |
-          coverage combine --keep --quiet
-          coverage report
-          coverage html --quiet
+          python -m coverage combine --keep --quiet
+          python -m coverage report
+          python -m coverage html --quiet
 
       - name: Build package
         run: python -m build
@@ -102,8 +102,8 @@ jobs:
 
       - name: Generate coverage report
         run: |
-          coverage combine --quiet
-          coverage html --quiet
+          python -m coverage combine --quiet
+          python -m coverage html --quiet
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4

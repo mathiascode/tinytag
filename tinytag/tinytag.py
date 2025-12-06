@@ -1547,10 +1547,12 @@ class _Ogg(TinyTag):
         last_audio_size = 0
         header_len = 27
         page_header = fh.read(header_len)  # read ogg page header
+        if page_header[:4] != b'OggS':
+            raise ParseError('Invalid OGG header')
         while len(page_header) == header_len:
             version = page_header[4]
             if page_header[:4] != b'OggS' or version != 0:
-                raise ParseError('Invalid OGG header')
+                break
             # https://xiph.org/ogg/doc/framing.html
             header_type = page_header[5]
             eos = header_type & 0x04

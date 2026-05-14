@@ -22,7 +22,7 @@ jobs:
         include:
           - os: ubuntu-22.04
             python: 3.7
-          - os: macos-15-intel
+          - os: macos-26-intel
             python: 3.7
           - os: windows-latest
             python: 3.7

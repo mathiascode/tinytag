@@ -1825,6 +1825,14 @@ TEST_FILES: dict[str, ExpectedTag] = dict([
         'samplerate': 8000,
         'bitdepth': 16,
     }),
+    ('adts.aac', {
+        'other': OtherFields(),
+        'channels': 1,
+        'duration': 30.208,
+        'filesize': 2613,
+        'bitrate': 0.6920021186440679,
+        'samplerate': 8000,
+    }),
 ])
 
 SAMPLE_FOLDER = os.path.join(os.path.dirname(__file__), 'samples')

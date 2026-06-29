@@ -205,6 +205,7 @@ class TinyTag:
                 ('.m4b', '.m4a', '.m4r', '.m4v', '.mp4',
                  '.aax', '.aaxc'): _MP4,
                 ('.aiff', '.aifc', '.aif', '.afc'): _Aiff,
+                ('.aac', '.adts'): _ADTS,
             }
         filename = filename.lower()
         for ext, tagclass in cls._file_extension_mapping.items():
@@ -2163,3 +2164,58 @@ class _Aiff(TinyTag):
                 fh.seek(subchunk_size, SEEK_CUR)
             chunk_header = fh.read(header_len)
         self._tags_parsed = self._parse_tags
+
+
+class _ADTS(TinyTag):
+    """ADTS Parser.
+
+    https://wiki.multimedia.cx/index.php/ADTS
+    """
+
+    _SAMPLE_RATES = (
+        96000, 88200, 64000, 48000, 44100, 32000, 24000, 22050, 16000, 12000,
+        11025, 8000, 7350,
+    )
+    _CHANNEL_CONFIGS = {
+        0x01: 1,
+        0x02: 2,
+        0x03: 3,
+        0x04: 4,
+        0x05: 5,
+        0x06: 6,
+        0x07: 8,
+    }
+    _SAMPLES_PER_FRAME = 1024
+
+    def _parse(self, fh: BinaryIO) -> None:
+        offset = 0
+        frames = 0
+        header_len = 6
+        header = fh.read(header_len)
+        while len(header) == header_len:
+            b1, b2, b3, b4, b5, b6 = header
+            syncword = (b1 << 4) | (b2 >> 4)
+            if syncword != 0xFFF:
+                if offset:
+                    # Garbage found after parsing a valid frame
+                    break
+                raise ParseError('Invalid ADTS header')
+            if not self._parse_duration:
+                return
+            if not offset:
+                sampling_index = (b3 >> 2) & 0x0F
+                channel_config = ((b3 & 0x01) << 2) | (b4 >> 6)
+                if sampling_index < len(self._SAMPLE_RATES):
+                    self.samplerate = self._SAMPLE_RATES[sampling_index]
+                if channel_config in self._CHANNEL_CONFIGS:
+                    self.channels = self._CHANNEL_CONFIGS[channel_config]
+            frame_length = ((b4 & 0x03) << 11) | (b5 << 3) | (b6 >> 5)
+            frames += 1
+            offset += frame_length
+            fh.seek(offset)
+            header = fh.read(header_len)
+        if self.samplerate:
+            self.duration = frames * self._SAMPLES_PER_FRAME / self.samplerate
+        if self.duration:
+            self.bitrate = offset * 8 / self.duration / 1000
+        self._duration_parsed = True

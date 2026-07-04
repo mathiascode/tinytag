@@ -11,9 +11,8 @@ import os.path
 from io import BytesIO, TextIOWrapper
 from math import isclose
 from pathlib import Path
-from platform import python_implementation, system
 from sys import stdout
-from unittest import skipIf, TestCase
+from unittest import TestCase
 
 from tinytag import ParseError, TinyTagException, UnsupportedFormatError
 from tinytag import Images, OtherFields, TinyTag
@@ -2005,10 +2004,6 @@ class TestAll(TestCase):
             tag_bytesio = TinyTag.get(file_obj=BytesIO(file_handle.read()))
             self.assertEqual(tag.filesize, tag_bytesio.filesize)
 
-    @skipIf(
-        system() == 'Windows' and python_implementation() == 'PyPy',
-        reason='PyPy on Windows not supported'
-    )
     def test_binary_path_compatibility(self) -> None:
         binary_file_path = os.path.join(
             SAMPLE_FOLDER, 'non_ascii_filename_äää.mp3').encode('utf-8')

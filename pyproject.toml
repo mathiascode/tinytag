@@ -56,9 +56,11 @@ dynamic = ["version"]
 [project.urls]
 Homepage = "https://github.com/tinytag/tinytag"
 
-[project.optional-dependencies]
-tests = [
+[dependency-groups]
+dev = [
+    "build",
     "coverage",
+    "flit",
     "mypy",
     "mypy<1.19.0; platform_python_implementation == 'PyPy'",
     "pycodestyle",

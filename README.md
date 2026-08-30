@@ -488,6 +488,12 @@ UnsupportedFormatError  # File format is not supported
 
 ## Changelog
 
+### 2.3.1  (2026-08-30)
+
+- Don't open unrecognized files when disabling magic byte detection
+- MPEG: Fix parsing of some files with incorrect headers
+- OGG/WAV: Read sizes as little endian instead of native byte order
+
 ### 2.3.0  (2026-07-31)
 
 - Add 'mime_type' attribute for audio MIME type/codec

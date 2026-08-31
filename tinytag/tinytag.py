@@ -2034,7 +2034,6 @@ class _Wave(TinyTag):
                         # IFF chunks are padded to an even size
                         data_length += data_length % 2
                         data = self._unpad_bytes(walker.read(data_length))
-                        # pylint: disable=consider-ternary-expression
                         if field in self._RIFF_MAPPING:
                             fieldname = self._RIFF_MAPPING[field]
                         else:

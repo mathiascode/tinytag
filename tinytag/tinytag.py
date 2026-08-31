@@ -2034,12 +2034,11 @@ class _Wave(TinyTag):
                         # IFF chunks are padded to an even size
                         data_length += data_length % 2
                         data = self._unpad_bytes(walker.read(data_length))
-                        if field in self._RIFF_MAPPING:
-                            fieldname = self._RIFF_MAPPING[field]
-                        else:
-                            fieldname = (
-                                self._OTHER_PREFIX
-                                + field.decode('latin-1')).lower()
+                        fieldname = self._RIFF_MAPPING.get(
+                            field,
+                            (self._OTHER_PREFIX
+                             + field.decode('latin-1')).lower()
+                        )
                         value = data.decode('utf-8', 'replace')
                         if fieldname == 'track':
                             if value.isdecimal():

@@ -1144,8 +1144,7 @@ class _ID3(TinyTag):
         return size
 
     def _parse_id3v1(self, fh: BinaryIO) -> bool:
-        content = fh.read(
-            3 + 30 + 30 + 30 + 4 + 30 + 1 if self._parse_tags else 3)
+        content = fh.read(128 if self._parse_tags else 3)
         if not content.startswith(b'TAG'):  # check if this is an ID3 v1 tag
             return False
         if not self._parse_tags:

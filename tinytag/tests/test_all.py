@@ -2649,6 +2649,18 @@ TEST_FILES: dict[str, ExpectedTag] = dict([
         'is_lossless': True,
         'filesize': 1124,
     }),
+    ('mp3_audio_no_btrt_atom.m4a', {
+        'other': OtherFields({
+            'encoded_by': ['Lavf62.12.102']
+        }),
+        'mime_type': 'audio/mp4; codecs="mp4a.6B"',
+        'is_lossless': False,
+        'filesize': 4895,
+        'samplerate': 44100,
+        'duration': 1.045,
+        'channels': 1,
+        'bitrate': 31.85,
+    }),
     ('test-tagged.aiff', {
         'other': OtherFields(),
         'mime_type': 'audio/aiff; codecs="NONE"',

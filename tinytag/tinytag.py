@@ -861,12 +861,11 @@ class _MP4(TinyTag):
 
         # Decoder Specific Info
         _size, offset = _read_descriptor_size(data, offset)
-        first = data[offset]
-        second = data[offset + 1]
-        audio_object_type = first >> 3
+        first_byte = data[offset]
+        audio_object_type = first_byte >> 3
         if audio_object_type == 31:
             # Read extended value
-            extended = ((first & 0x07) << 3) | (second >> 5)
+            extended = ((first_byte & 0x07) << 3) | (data[offset + 1] >> 5)
             audio_object_type = 32 + extended
         if audio_object_type:
             codec += f'.{audio_object_type}'

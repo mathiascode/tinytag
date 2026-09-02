@@ -859,16 +859,17 @@ class _MP4(TinyTag):
             yield 'bitrate', avg_br / 1000  # kbit/s
         offset += 5
 
-        # Decoder Specific Info
-        _size, offset = _read_descriptor_size(data, offset)
-        first_byte = data[offset]
-        audio_object_type = first_byte >> 3
-        if audio_object_type == 31:
-            # Read extended value
-            extended = ((first_byte & 0x07) << 3) | (data[offset + 1] >> 5)
-            audio_object_type = 32 + extended
-        if audio_object_type:
-            codec += f'.{audio_object_type}'
+        # Decoder Specific Info (optional)
+        size, offset = _read_descriptor_size(data, offset)
+        if size > 0:
+            first_byte = data[offset]
+            audio_object_type = first_byte >> 3
+            if audio_object_type == 31:
+                # Read extended value
+                extended = ((first_byte & 0x07) << 3) | (data[offset + 1] >> 5)
+                audio_object_type = 32 + extended
+            if audio_object_type:
+                codec += f'.{audio_object_type}'
         if object_type:
             yield 'codec', codec
             yield 'is_lossless', codec in cls._LOSSLESS_CODECS

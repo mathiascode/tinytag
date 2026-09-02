@@ -5,9 +5,8 @@
 # pylint: disable=missing-module-docstring
 # pyright: reportPrivateUsage=false
 
-from __future__ import annotations
-
 import os.path
+import sys
 
 from io import BytesIO, TextIOWrapper
 from pathlib import Path
@@ -19,18 +18,7 @@ from tinytag import ParseError, TinyTagException, UnsupportedFormatError
 from tinytag import Image, Images, OtherFields, OtherImages, TinyTag
 from tinytag.tinytag import _ID3, _MPEG, _Ogg, _Wave, _Flac, _ASF, _MP4, _Aiff
 
-TYPE_CHECKING = False
-
-# Lazy imports for type checking
-if TYPE_CHECKING:
-    from typing import BinaryIO, Mapping, Union
-    ExpectedTag = Mapping[str, Union[str, float, OtherFields]]
-    ExpectedImages = Mapping[str, Union[Image, OtherImages]]
-else:
-    ExpectedTag = dict
-    ExpectedImages = dict
-
-TEST_FILES: dict[str, ExpectedTag] = dict([
+TEST_FILES = dict([
     ('vbri.mp3', {
         'other': OtherFields(),
         'mime_type': 'audio/mpeg',
@@ -3010,7 +2998,7 @@ TEST_FILES: dict[str, ExpectedTag] = dict([
     }),
 ])
 
-IMAGE_TEST_FILES: dict[str, ExpectedImages] = dict([
+IMAGE_TEST_FILES = dict([
     ('image-text-encoding.mp3', {
         'other': OtherImages(),
         'front_cover': Image(
@@ -3221,16 +3209,16 @@ SAMPLE_FOLDER = os.path.join(os.path.dirname(__file__), 'samples')
 class TestAll(TestCase):
 
     @classmethod
-    def setUpClass(cls) -> None:
+    def setUpClass(cls):
         # Use utf-8 encoding for debug print()
         if isinstance(stdout, TextIOWrapper):
-            stdout.reconfigure(encoding='utf-8')
+            sys.stdout = TextIOWrapper(stdout.detach(), encoding='utf-8')
         # Show full assertion error diff
         cls.maxDiff = None
 
     def compare_tag(self,
-                    results: ExpectedTag,
-                    expected: ExpectedTag) -> None:
+                    results,
+                    expected):
         self.assertEqual(set(results), set(expected))
 
         for path, result_val in results.items():
@@ -3261,10 +3249,10 @@ class TestAll(TestCase):
             self.assertEqual(result_val, expected_val)
 
     def compare_images(self,
-                       results: ExpectedImages,
-                       expected: ExpectedImages) -> None:
-        def assert_images_match(result_val: Image,
-                                expected_val: Image) -> None:
+                       results,
+                       expected):
+        def assert_images_match(result_val,
+                                expected_val):
             self.assertEqual(result_val.name, expected_val.name)
             self.assertEqual(result_val.size, expected_val.size)
             self.assertEqual(result_val.mime_type, expected_val.mime_type)
@@ -3291,7 +3279,7 @@ class TestAll(TestCase):
             assert isinstance(result_val, Image)
             assert_images_match(result_val, expected_val)
 
-    def test_file_reading_all(self) -> None:
+    def test_file_reading_all(self):
         for testfile, expected in TEST_FILES.items():
             with self.subTest(testfile=testfile, expected=expected):
                 filename = os.path.join(SAMPLE_FOLDER, testfile)
@@ -3304,7 +3292,7 @@ class TestAll(TestCase):
                 }
                 self.compare_tag(results, expected)
 
-    def test_file_reading_tags(self) -> None:
+    def test_file_reading_tags(self):
         for testfile, expected in TEST_FILES.items():
             with self.subTest(testfile=testfile, expected=expected):
                 filename = os.path.join(SAMPLE_FOLDER, testfile)
@@ -3330,7 +3318,7 @@ class TestAll(TestCase):
                 self.compare_tag(results, filtered_expected)
                 assert tag.images.any is None
 
-    def test_file_reading_duration(self) -> None:
+    def test_file_reading_duration(self):
         for testfile, expected in TEST_FILES.items():
             with self.subTest(testfile=testfile, expected=expected):
                 filename = os.path.join(SAMPLE_FOLDER, testfile)
@@ -3352,7 +3340,7 @@ class TestAll(TestCase):
                 self.compare_tag(results, filtered_expected)
                 assert tag.images.any is None
 
-    def test_file_reading_images(self) -> None:
+    def test_file_reading_images(self):
         for testfile, expected in IMAGE_TEST_FILES.items():
             with self.subTest(testfile=testfile, expected=expected):
                 filename = os.path.join(SAMPLE_FOLDER, testfile)
@@ -3364,13 +3352,13 @@ class TestAll(TestCase):
                 }
                 self.compare_images(results, expected)
 
-    def test_pathlib_compatibility(self) -> None:
+    def test_pathlib_compatibility(self):
         testfile = next(iter(TEST_FILES.keys()))
         filename = Path(SAMPLE_FOLDER) / testfile
         TinyTag.get(filename)
         self.assertTrue(TinyTag.is_supported(filename))
 
-    def test_file_obj_compatibility(self) -> None:
+    def test_file_obj_compatibility(self):
         testfile = next(iter(TEST_FILES.keys()))
         filename = os.path.join(SAMPLE_FOLDER, testfile)
         with open(filename, 'rb') as file_handle:
@@ -3383,32 +3371,32 @@ class TestAll(TestCase):
         system() == 'Windows' and python_implementation() == 'PyPy',
         reason='PyPy on Windows not supported'
     )
-    def test_binary_path_compatibility(self) -> None:
+    def test_binary_path_compatibility(self):
         binary_file_path = os.path.join(
             SAMPLE_FOLDER, 'non_ascii_filename_äää.mp3').encode('utf-8')
         tag = TinyTag.get(binary_file_path)
         self.assertEqual(tag.samplerate, 44100)
         self.assertEqual(tag.other['encoder_settings'], ['Lavf58.20.100'])
 
-    def test_unsupported_extension(self) -> None:
+    def test_unsupported_extension(self):
         bogus_file = os.path.join(SAMPLE_FOLDER, 'there_is_no_such_ext.bogus')
         with self.assertRaises(UnsupportedFormatError) as context:
             TinyTag.get(bogus_file)
         self.assertIsInstance(context.exception, TinyTagException)
 
-    def test_unsupported_magic_bytes(self) -> None:
+    def test_unsupported_magic_bytes(self):
         bogus_file = os.path.join(SAMPLE_FOLDER, 'detect_none.x')
         with self.assertRaises(UnsupportedFormatError) as context:
             TinyTag.get(bogus_file)
         self.assertIsInstance(context.exception, TinyTagException)
 
-    def test_override_encoding(self) -> None:
+    def test_override_encoding(self):
         chinese_id3 = os.path.join(SAMPLE_FOLDER, 'chinese_id3.mp3')
         tag = TinyTag.get(chinese_id3, encoding='gbk')
         self.assertEqual(tag.artist, '苏云')
         self.assertEqual(tag.album, '角落之歌')
 
-    def test_invalid_file(self) -> None:
+    def test_invalid_file(self):
         for path, cls in (
             ('invalid_file.m4a', _MP4),
             ('invalid_file.flac', _Flac),
@@ -3422,7 +3410,7 @@ class TestAll(TestCase):
                     cls.get(os.path.join(SAMPLE_FOLDER, path))
                 self.assertIsInstance(context.exception, TinyTagException)
 
-    def test_image_construction(self) -> None:
+    def test_image_construction(self):
         name = 'front_cover'
         mime_type = 'image/jpeg'
         description = 'cover'
@@ -3438,7 +3426,7 @@ class TestAll(TestCase):
         self.assertEqual(image.size, size)
         self.assertEqual(image.data, data)
 
-    def test_images_any(self) -> None:
+    def test_images_any(self):
         tag = TinyTag.get(
             os.path.join(SAMPLE_FOLDER, 'multiple_values_images.flac'),
             image=True
@@ -3455,7 +3443,7 @@ class TestAll(TestCase):
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(image.data, tag.get_image())
 
-    def test_images_any_other(self) -> None:
+    def test_images_any_other(self):
         tag = TinyTag.get(
             os.path.join(SAMPLE_FOLDER, 'ogg_with_image.ogg'), image=True)
         image = tag.images.any
@@ -3469,7 +3457,7 @@ class TestAll(TestCase):
         with self.assertWarns(DeprecationWarning):
             self.assertEqual(image.data, tag.get_image())
 
-    def test_detect_magic_bytes(self) -> None:
+    def test_detect_magic_bytes(self):
         for testfile, expected in (
             ('detect_mp3_id3v2.x', _ID3),
             ('detect_mp3_id3v1.x', _ID3),
@@ -3497,7 +3485,7 @@ class TestAll(TestCase):
                     TinyTag.get(filename, check_magic_bytes=False)
                 self.assertIsInstance(context.exception, TinyTagException)
 
-    def test_show_hint_for_wrong_usage(self) -> None:
+    def test_show_hint_for_wrong_usage(self):
         with self.assertRaises(ValueError) as context:
             TinyTag.get()
         self.assertIsInstance(context.exception, ValueError)
@@ -3506,12 +3494,12 @@ class TestAll(TestCase):
             'Either filename or file_obj argument is required'
         )
 
-    def test_unimplemented_load(self) -> None:
+    def test_unimplemented_load(self):
         class IncompleteTag(TinyTag):  # pylint: disable=abstract-method
             def load(self,
-                     file_handle: BinaryIO | None,
-                     tags: bool,
-                     duration: bool) -> None:
+                     file_handle,
+                     tags,
+                     duration):
                 self.filesize = 1
                 self._filehandler = file_handle
                 self._load(tags=tags, duration=duration)
@@ -3523,7 +3511,7 @@ class TestAll(TestCase):
         with self.assertRaises(NotImplementedError):
             tag.load(file_handle=BytesIO(), tags=False, duration=True)
 
-    def test_deprecations(self) -> None:
+    def test_deprecations(self):
         file_path = os.path.join(SAMPLE_FOLDER, 'multiple_values_images.flac')
         with self.assertWarns(DeprecationWarning):
             TinyTag.get(filename=file_path, image=True, ignore_errors=True)
@@ -3538,7 +3526,7 @@ class TestAll(TestCase):
             assert tag.images.any is not None
             self.assertEqual(tag.get_image(), tag.images.any.data)
 
-    def test_str_vars(self) -> None:
+    def test_str_vars(self):
         tag = TinyTag.get(
             os.path.join(SAMPLE_FOLDER, 'multiple_values_images.flac'),
             image=True
@@ -3588,7 +3576,7 @@ class TestAll(TestCase):
             "'yet another image')]}}"
         )
 
-    def test_str_flat_dict(self) -> None:
+    def test_str_flat_dict(self):
         tag = TinyTag.get(
             os.path.join(SAMPLE_FOLDER, 'multiple_values_images.flac'),
             image=True

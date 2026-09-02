@@ -28,7 +28,7 @@ TINYTAG_ATTRIBUTES = {
 class TestCLI(TestCase):
 
     @staticmethod
-    def run_cli(args: str) -> str:
+    def run_cli(args):
         debug_env = str(os.environ.pop("TINYTAG_DEBUG", None))
         output = check_output(
             f'{executable} -m tinytag ' + args, cwd=PROJECT_FOLDER,
@@ -37,18 +37,18 @@ class TestCLI(TestCase):
             os.environ["TINYTAG_DEBUG"] = debug_env
         return output.decode('utf-8')
 
-    def test_wrong_params(self) -> None:
+    def test_wrong_params(self):
         with self.assertRaises(CalledProcessError) as excinfo:
             self.run_cli('-lol')
         output = excinfo.exception.stdout.strip()
         self.assertEqual(
             output, b"-lol: [Errno 2] No such file or directory: '-lol'")
 
-    def test_print_help(self) -> None:
+    def test_print_help(self):
         self.assertIn('tinytag [options] <filename', self.run_cli('-h'))
         self.assertIn('tinytag [options] <filename', self.run_cli('--help'))
 
-    def test_save_image_long_opt(self) -> None:
+    def test_save_image_long_opt(self):
         with NamedTemporaryFile() as temp_file:
             self.assertEqual(os.path.getsize(temp_file.name), 0)
         self.run_cli(f'--save-image {temp_file.name} {MP3_WITH_IMG}')
@@ -58,13 +58,13 @@ class TestCLI(TestCase):
             self.assertTrue(image_data.startswith(b'\xff'))
             self.assertIn(b'JFIF', image_data)
 
-    def test_save_image_short_opt(self) -> None:
+    def test_save_image_short_opt(self):
         with NamedTemporaryFile() as temp_file:
             self.assertEqual(os.path.getsize(temp_file.name), 0)
         self.run_cli(f'-i {temp_file.name} {MP3_WITH_IMG}')
         self.assertGreater(os.path.getsize(temp_file.name), 0)
 
-    def test_save_image_bulk(self) -> None:
+    def test_save_image_bulk(self):
         temp_name = None
         with NamedTemporaryFile(suffix='.jpg') as temp_file:
             temp_name = temp_file.name
@@ -77,47 +77,47 @@ class TestCLI(TestCase):
         self.assertGreater(os.path.getsize(temp_name_no_ext + '00001.jpg'), 0)
         self.assertGreater(os.path.getsize(temp_name_no_ext + '00002.jpg'), 0)
 
-    def test_meta_data_output_default_json(self) -> None:
+    def test_meta_data_output_default_json(self):
         output = self.run_cli(MP3_WITH_IMG)
         data = json.loads(output)
         self.assertTrue(data)
         self.assertTrue(set(data.keys()).issubset(TINYTAG_ATTRIBUTES))
 
-    def test_meta_data_output_format_json(self) -> None:
+    def test_meta_data_output_format_json(self):
         output = self.run_cli('-f json ' + MP3_WITH_IMG)
         data = json.loads(output)
         self.assertTrue(data)
         self.assertTrue(set(data.keys()).issubset(TINYTAG_ATTRIBUTES))
 
-    def test_meta_data_output_format_csv(self) -> None:
+    def test_meta_data_output_format_csv(self):
         output = self.run_cli('-f csv ' + MP3_WITH_IMG)
         lines = [line for line in output.split(os.linesep) if line]
         self.assertTrue(all(',' in line for line in lines))
         attributes = set(line.split(',')[0] for line in lines)
         self.assertTrue(set(attributes).issubset(TINYTAG_ATTRIBUTES))
 
-    def test_meta_data_output_format_tsv(self) -> None:
+    def test_meta_data_output_format_tsv(self):
         output = self.run_cli('-f tsv ' + MP3_WITH_IMG)
         lines = [line for line in output.split(os.linesep) if line]
         self.assertTrue(all('\t' in line for line in lines))
         attributes = set(line.split('\t')[0] for line in lines)
         self.assertTrue(set(attributes).issubset(TINYTAG_ATTRIBUTES))
 
-    def test_meta_data_output_format_tabularcsv(self) -> None:
+    def test_meta_data_output_format_tabularcsv(self):
         output = self.run_cli('-f tabularcsv ' + MP3_WITH_IMG)
         header, _line, _rest = output.split(os.linesep)
         self.assertTrue(set(header.split(',')).issubset(TINYTAG_ATTRIBUTES))
 
-    def test_meta_data_output_format_invalid(self) -> None:
+    def test_meta_data_output_format_invalid(self):
         output = self.run_cli('-f invalid ' + MP3_WITH_IMG)
         self.assertFalse(output)
 
-    def test_fail_on_unsupported_file(self) -> None:
+    def test_fail_on_unsupported_file(self):
         with self.assertRaises(CalledProcessError):
             self.run_cli(BOGUS_FILE)
 
-    def test_fail_skip_unsupported_file_long_opt(self) -> None:
+    def test_fail_skip_unsupported_file_long_opt(self):
         self.run_cli('--skip-unsupported ' + BOGUS_FILE)
 
-    def test_fail_skip_unsupported_file_short_opt(self) -> None:
+    def test_fail_skip_unsupported_file_short_opt(self):
         self.run_cli('-s ' + BOGUS_FILE)

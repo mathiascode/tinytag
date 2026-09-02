@@ -22,8 +22,14 @@ jobs:
         include:
           - os: ubuntu-22.04
             python: 3.7
+          - os: ubuntu-22.04
+            python: 'pypy-3.6'
+          - os: macos-15-intel
+            python: 3.6
           - os: macos-15-intel
             python: 3.7
+          - os: windows-latest
+            python: 3.6
           - os: windows-latest
             python: 3.7
 
@@ -45,15 +51,6 @@ jobs:
 
       - name: PEP 8 style checks
         run: python -m pycodestyle .
-
-      - name: Linting
-        run: python -m pylint --recursive=y .
-
-      - name: Typing (mypy)
-        run: python -m mypy -p tinytag
-
-      - name: Typing (pyright)
-        run: python -m pyright
 
       - name: Unit tests
         run: python -m coverage run --parallel-mode -m unittest

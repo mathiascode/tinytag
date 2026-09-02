@@ -50,7 +50,7 @@ classifiers = [
 ]
 license = {file = "LICENSE"}
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.6"
 dynamic = ["version"]
 
 [project.urls]
@@ -61,11 +61,8 @@ dev = [
     "build",
     "coverage",
     "flit_core",
-    "mypy",
-    "mypy<1.19.0; platform_python_implementation == 'PyPy'",
     "pycodestyle",
     "pylint",
-    "pyright",
     "wheel"
 ]
 

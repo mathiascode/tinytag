@@ -3,8 +3,6 @@
 
 # pylint: disable=missing-module-docstring,protected-access
 
-from __future__ import annotations
-
 import sys
 
 from io import StringIO
@@ -31,7 +29,7 @@ def _usage() -> None:
 ''')
 
 
-def _pop_param(name: str, _default: str | None) -> str | None:
+def _pop_param(name, _default):
     if name in sys.argv:
         idx = sys.argv.index(name)
         sys.argv.pop(idx)
@@ -39,7 +37,7 @@ def _pop_param(name: str, _default: str | None) -> str | None:
     return _default
 
 
-def _pop_switch(name: str) -> bool:
+def _pop_switch(name):
     if name in sys.argv:
         idx = sys.argv.index(name)
         sys.argv.pop(idx)
@@ -47,7 +45,7 @@ def _pop_switch(name: str) -> bool:
     return False
 
 
-def _print_tag(tag: TinyTag, fmt: str, header_printed: bool = False) -> bool:
+def _print_tag(tag, fmt, header_printed=False):
     data = tag.as_dict()
     if fmt == 'json':
         import json  # pylint: disable=import-outside-toplevel
@@ -76,7 +74,7 @@ def _print_tag(tag: TinyTag, fmt: str, header_printed: bool = False) -> bool:
     return header_printed
 
 
-def _run() -> int:
+def _run():
     header_printed = False
     image_path = _pop_param('--save-image', None) or _pop_param('-i', None)
     fmt = (_pop_param('--format', None) or _pop_param('-f', None)) or 'json'

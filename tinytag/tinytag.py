@@ -26,34 +26,16 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+# pylint: disable=consider-alternative-union-syntax,deprecated-typing-alias
+# pylint: disable=use-implicit-booleaness-not-comparison-to-zero
 # pyright: reportPrivateUsage=false
 
 """Audio file metadata reader."""
 
-from __future__ import annotations
 from binascii import a2b_base64
 from io import BytesIO
-from os import PathLike, SEEK_CUR, SEEK_END, environ, fsdecode
+from os import SEEK_CUR, SEEK_END, environ, fsdecode
 from struct import unpack, unpack_from
-
-TYPE_CHECKING = False
-
-# Lazy imports for type checking
-if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
-    from typing import Any, BinaryIO, Dict, List, Tuple, Union
-
-    _StringListDict = Dict[str, List[str]]
-    _ImageListDict = Dict[str, List['Image']]
-    _AtomParser = Callable[
-        [bytes],
-        Iterator[
-            Tuple[str, Union[str, float, List[str], 'Image']]
-        ]
-    ]
-    _AtomTreeDict = Dict[bytes, Union['_AtomTreeDict', _AtomParser]]
-else:
-    _StringListDict = _ImageListDict = dict
 
 # some of the parsers can print debug info
 _DEBUG = bool(environ.get('TINYTAG_DEBUG'))
@@ -83,55 +65,54 @@ class TinyTag:
         '.aiff', '.aifc', '.aif', '.afc'
     )
     _OTHER_PREFIX = 'other.'
-    _file_extension_mapping: dict[tuple[str, ...], type[TinyTag]] | None = None
+    _file_extension_mapping = None
 
-    def __init__(self) -> None:
-        self.filename: str | None = None
+    def __init__(self):
+        self.filename = None
         self.filesize = 0
 
-        self.mime_type: str | None = None
-        self.is_lossless: bool | None = None
-        self.duration: float | None = None
-        self.channels: int | None = None
-        self.bitrate: float | None = None
-        self.bitdepth: int | None = None
-        self.samplerate: int | None = None
+        self.mime_type = None
+        self.is_lossless = None
+        self.duration = None
+        self.channels = None
+        self.bitrate = None
+        self.bitdepth = None
+        self.samplerate = None
 
-        self.artist: str | None = None
-        self.albumartist: str | None = None
-        self.composer: str | None = None
-        self.album: str | None = None
-        self.disc: int | None = None
-        self.disc_total: int | None = None
-        self.title: str | None = None
-        self.track: int | None = None
-        self.track_total: int | None = None
-        self.genre: str | None = None
-        self.year: str | None = None
-        self.comment: str | None = None
+        self.artist = None
+        self.albumartist = None
+        self.composer = None
+        self.album = None
+        self.disc = None
+        self.disc_total = None
+        self.title = None
+        self.track = None
+        self.track_total = None
+        self.genre = None
+        self.year = None
+        self.comment = None
 
         self.images = Images()
         self.other = OtherFields()
 
-        self._filehandler: BinaryIO | None = None
-        self._default_encoding: str | None = None  # override for some formats
+        self._filehandler = None
+        self._default_encoding = None  # override for some formats
         self._parse_duration = True
         self._parse_tags = True
         self._load_image = False
         self._duration_parsed = False
         self._tags_parsed = False
-        self.__dict__: dict[str, str | float | Images | OtherFields | None]
 
     @classmethod
     def get(cls,
-            filename: bytes | str | PathLike[Any] | None = None,
-            file_obj: BinaryIO | None = None,
-            tags: bool = True,
-            duration: bool = True,
-            image: bool = False,
-            encoding: str | None = None,
-            ignore_errors: bool | None = None,
-            check_magic_bytes: bool = True) -> TinyTag:
+            filename=None,
+            file_obj=None,
+            tags=True,
+            duration=True,
+            image=False,
+            encoding=None,
+            ignore_errors=None,
+            check_magic_bytes=True):
         """Return a tag object for an audio file."""
         should_close_file = file_obj is None
         parser_class = None
@@ -175,20 +156,20 @@ class TinyTag:
                 file_obj.close()
 
     @classmethod
-    def is_supported(cls, filename: bytes | str | PathLike[Any]) -> bool:
+    def is_supported(cls, filename):
         """Check if a specific file is supported based on its file
         extension."""
         filename_str = fsdecode(filename)
         return cls._get_parser_for_filename(filename_str) is not None
 
-    def as_dict(self) -> dict[str, str | float | list[str]]:
+    def as_dict(self):
         """Return a flat dictionary representation of available
         metadata."""
         audio_property_keys = {
             'filename', 'filesize', 'mime_type', 'duration', 'channels',
             'bitrate', 'bitdepth', 'samplerate', 'is_lossless'
         }
-        fields: dict[str, str | float | list[str]] = {}
+        fields = {}
         for key, value in self.__dict__.items():
             if key.startswith('_'):
                 continue
@@ -211,7 +192,7 @@ class TinyTag:
         return fields
 
     @classmethod
-    def _get_parser_for_filename(cls, filename: str) -> type[TinyTag] | None:
+    def _get_parser_for_filename(cls, filename):
         if cls._file_extension_mapping is None:
             cls._file_extension_mapping = {
                 ('.mp1', '.mp2', '.mp3', '.flac'): _ID3,
@@ -231,8 +212,8 @@ class TinyTag:
     @classmethod
     def _get_parser_for_file_handle(
         cls,
-        filehandle: BinaryIO
-    ) -> type[TinyTag] | None:
+        filehandle
+    ):
         # https://en.wikipedia.org/wiki/List_of_file_signatures
         header = filehandle.read(30)
         if header.startswith(b'ID3'):
@@ -270,9 +251,9 @@ class TinyTag:
     @classmethod
     def _get_parser_class(
         cls,
-        filename: str | None = None,
-        filehandle: BinaryIO | None = None
-    ) -> type[TinyTag]:
+        filename=None,
+        filehandle=None
+    ):
         if cls != TinyTag:
             return cls
         if filename:
@@ -287,7 +268,7 @@ class TinyTag:
         raise UnsupportedFormatError(
             'No tag reader found to support file type')
 
-    def _load(self, tags: bool, duration: bool, image: bool = False) -> None:
+    def _load(self, tags, duration, image=False):
         self._parse_tags = tags
         self._parse_duration = duration
         self._load_image = image
@@ -298,7 +279,7 @@ class TinyTag:
         if tags or duration:
             self._parse(self._filehandler)
 
-    def _set_field(self, fieldname: str, value: str | float) -> None:
+    def _set_field(self, fieldname, value):
         if isinstance(value, str) and not value:
             return
         old_value = self.__dict__.get(fieldname)
@@ -317,7 +298,7 @@ class TinyTag:
             print(f'Setting field {fieldname} to {value!r}')
         self.__dict__[fieldname] = value
 
-    def _set_other_field(self, fieldname: str, value: str) -> None:
+    def _set_other_field(self, fieldname, value):
         if not value:
             return
         if fieldname not in self.other:
@@ -328,10 +309,10 @@ class TinyTag:
             print(f'Adding value {value!r} to field {fieldname}')
         self.other[fieldname].append(value)
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         raise NotImplementedError
 
-    def _update(self, other: TinyTag) -> None:
+    def _update(self, other):
         # update the values of this tag with the values from another tag
         ignored_keys = {'filename', 'filesize', 'mime_type'}
         for key, value in other.__dict__.items():
@@ -347,15 +328,15 @@ class TinyTag:
                 self._set_field(key, value)
 
     @staticmethod
-    def _unpad(s: str) -> str:
+    def _unpad(s):
         # certain strings *may* be terminated with a zero byte at the end
         return s.rstrip('\x00')
 
     @staticmethod
-    def _unpad_bytes(s: bytes) -> bytes:
+    def _unpad_bytes(s):
         return s.rstrip(b'\x00')
 
-    def get_image(self) -> bytes | None:
+    def get_image(self):
         """Deprecated, use 'images.any' instead."""
         from warnings import warn  # pylint: disable=import-outside-toplevel
         warn('get_image() is deprecated, and will be removed in the future. '
@@ -365,7 +346,7 @@ class TinyTag:
         return image.data if image is not None else None
 
     @property
-    def audio_offset(self) -> None:  # pylint: disable=useless-return
+    def audio_offset(self):  # pylint: disable=useless-return
         """Obsolete."""
         from warnings import warn  # pylint: disable=import-outside-toplevel
         warn("'audio_offset' attribute is obsolete, and will be "
@@ -374,7 +355,7 @@ class TinyTag:
         return None
 
     @property
-    def extra(self) -> dict[str, str]:
+    def extra(self):
         """Obsolete, use 'other' instead."""
         from warnings import warn  # pylint: disable=import-outside-toplevel
         warn("'extra' attribute is obsolete, and will be "
@@ -387,16 +368,15 @@ class Images:
     """A class containing images embedded in an audio file."""
     _OTHER_PREFIX = 'other.'
 
-    def __init__(self) -> None:
-        self.front_cover: Image | None = None
-        self.back_cover: Image | None = None
-        self.media: Image | None = None
+    def __init__(self):
+        self.front_cover = None
+        self.back_cover = None
+        self.media = None
 
         self.other = OtherImages()
-        self.__dict__: dict[str, Image | OtherImages | None]
 
     @property
-    def any(self) -> Image | None:
+    def any(self):
         """Return a cover image.
         If not present, fall back to any other available image.
         """
@@ -410,9 +390,9 @@ class Images:
                 return value
         return None
 
-    def as_dict(self) -> dict[str, list[Image]]:
+    def as_dict(self):
         """Return a flat dictionary representation of available images."""
-        images: dict[str, list[Image]] = {}
+        images = {}
         for key, value in self.__dict__.items():
             if not isinstance(value, OtherImages):
                 if value is not None:
@@ -426,7 +406,7 @@ class Images:
                     other_images += other_values
         return images
 
-    def _set_field(self, fieldname: str, value: Image) -> None:
+    def _set_field(self, fieldname, value):
         old_value = self.__dict__.get(fieldname)
         if old_value is not None:
             self._set_other_field(fieldname, value)
@@ -439,14 +419,14 @@ class Images:
             print(f'Setting image field {fieldname}')
         self.__dict__[fieldname] = value
 
-    def _set_other_field(self, fieldname: str, value: Image) -> None:
+    def _set_other_field(self, fieldname, value):
         if fieldname not in self.other:
             self.other[fieldname] = []
         if _DEBUG:
             print(f'Adding image to field {fieldname}')
         self.other[fieldname].append(value)
 
-    def _update(self, other: Images) -> None:
+    def _update(self, other):
         for key, value in other.__dict__.items():
             if isinstance(value, OtherImages):
                 for other_key, other_values in value.items():
@@ -460,18 +440,18 @@ class Images:
 class Image:
     """A class representing an image embedded in an audio file."""
     def __init__(self,
-                 name: str,
-                 size: int,
-                 data: bytes,
-                 mime_type: str | None = None,
-                 description: str | None = None) -> None:
+                 name,
+                 size,
+                 data,
+                 mime_type=None,
+                 description=None):
         self.name = name
         self.size = size
         self.data = data
         self.mime_type = mime_type
-        self.description: str | None = description
+        self.description = description
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         variables = vars(self).copy()
         data = variables.get("data")
         if data is not None:
@@ -480,11 +460,11 @@ class Image:
         return f'{type(self).__name__}({data_str})'
 
 
-class OtherFields(_StringListDict):
+class OtherFields(dict):
     """A dictionary containing additional metadata fields of an audio file."""
 
 
-class OtherImages(_ImageListDict):
+class OtherImages(dict):
     """A dictionary containing additional images embedded in an audio file."""
 
 
@@ -527,21 +507,22 @@ class _MP4(TinyTag):
         'mp4a.40.37',  # SLS
         'mp4a.40.38',  # SLS non-core
     }
+    _DECODER_SPECIFIC_INFO_TAG = 0x05
     _VERSIONED_ATOMS = {b'meta', b'stsd'}  # those have an extra 4 byte header
     _FLAGGED_ATOMS = {b'stsd'}  # these also have an extra 4 byte header
     _ILST_PATH = [b'ftyp', b'moov', b'udta', b'meta', b'ilst']
     _COVR_PATH = [b'ftyp', b'moov', b'udta', b'meta', b'ilst', b'covr']
 
-    _audio_data_tree: _AtomTreeDict | None = None
-    _meta_data_tree: _AtomTreeDict | None = None
-    _combined_tree: _AtomTreeDict | None = None
+    _audio_data_tree = None
+    _meta_data_tree = None
+    _combined_tree = None
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         # The parser tree: Each key is an atom name which is traversed if
         # existing. Leaves of the parser tree are callables which receive
         # the atom data. Callables return {fieldname: value} which is updates
         # the TinyTag.
-        tree: _AtomTreeDict = {}
+        tree = {}
         if self._parse_duration and self._parse_tags:
             tree = self._build_combined_tree()
         elif self._parse_duration:
@@ -553,7 +534,7 @@ class _MP4(TinyTag):
         self._tags_parsed = self._parse_tags
 
     @classmethod
-    def _build_audio_data_tree(cls) -> _AtomTreeDict:
+    def _build_audio_data_tree(cls):
         if cls._audio_data_tree is None:
             # https://developer.apple.com/library/mac/documentation/QuickTime/QTFF/QTFFChap3/qtff3.html
             cls._audio_data_tree = {
@@ -568,7 +549,7 @@ class _MP4(TinyTag):
         return cls._audio_data_tree
 
     @classmethod
-    def _build_meta_data_tree(cls) -> _AtomTreeDict:
+    def _build_meta_data_tree(cls):
         if cls._meta_data_tree is None:
             cls._meta_data_tree = {b'moov': {b'udta': {b'meta': {b'ilst': {
                 # http://atomicparsley.sourceforge.net/mpeg-4files.html
@@ -610,7 +591,7 @@ class _MP4(TinyTag):
         return cls._meta_data_tree
 
     @classmethod
-    def _build_combined_tree(cls) -> _AtomTreeDict:
+    def _build_combined_tree(cls):
         if cls._combined_tree is None:
             cls._combined_tree = result = dict(cls._build_audio_data_tree())
             for key, value in cls._build_meta_data_tree().items():
@@ -623,8 +604,8 @@ class _MP4(TinyTag):
 
     @staticmethod
     def _read_atom_header(
-        fh: BinaryIO
-    ) -> tuple[bytes | None, int, int | None]:
+        fh
+    ):
         atom_type = None
         atom_size = None
         atom_header = fh.read(8)
@@ -648,11 +629,11 @@ class _MP4(TinyTag):
         return atom_type, header_size, atom_size
 
     def _traverse_atoms(self,
-                        fh: BinaryIO,
-                        path: _AtomTreeDict,
-                        curr_pos: int | None = None,
-                        stop_pos: int | None = None,
-                        curr_path: list[bytes] | None = None) -> int:
+                        fh,
+                        path,
+                        curr_pos=None,
+                        stop_pos=None,
+                        curr_path=None):
         if curr_pos is None:
             curr_pos = fh.tell()
         atom_type, header_size, atom_size = self._read_atom_header(fh)
@@ -660,7 +641,7 @@ class _MP4(TinyTag):
             # Should be safe enough for a quick header check. Newer MP4
             # files tend to start with an 'ftyp' atom. Older files don't,
             # but their initial atom type only seem to use ASCII chars.
-            if atom_type is None or not atom_type.isascii():
+            if atom_type is None or not all(c < 128 for c in atom_type):
                 raise ParseError('Invalid MP4 header')
             self.mime_type = 'audio/mp4'
         while atom_type is not None and atom_size is not None:
@@ -732,9 +713,9 @@ class _MP4(TinyTag):
 
     @classmethod
     def _data_parser(
-        cls, fieldname: str
-    ) -> Callable[[bytes], Iterator[tuple[str, str]]]:
-        def _parse_data_atom(data: bytes) -> Iterator[tuple[str, str]]:
+        cls, fieldname
+    ):
+        def _parse_data_atom(data):
             data_type = unpack_from('>I', data)[0]
             data = data[8:]
             value = ""
@@ -750,9 +731,9 @@ class _MP4(TinyTag):
 
     @classmethod
     def _nums_parser(
-        cls, fieldname1: str, fieldname2: str
-    ) -> Callable[[bytes], Iterator[tuple[str, int]]]:
-        def _parse_nums(data: bytes) -> Iterator[tuple[str, int]]:
+        cls, fieldname1, fieldname2
+    ):
+        def _parse_nums(data):
             number_data = data[8:14]
             numbers = unpack('>3H', number_data)
             # for some reason the first number is always irrelevant.
@@ -761,7 +742,7 @@ class _MP4(TinyTag):
         return _parse_nums
 
     @classmethod
-    def _parse_id3v1_genre(cls, data: bytes) -> Iterator[tuple[str, str]]:
+    def _parse_id3v1_genre(cls, data):
         # dunno why genre is offset by -1 but that's how mutagen does it
         idx = unpack_from('>H', data, 8)[0] - 1
         # pylint: disable=protected-access
@@ -770,7 +751,7 @@ class _MP4(TinyTag):
 
     @classmethod
     def _parse_cover_image(cls,
-                           data: bytes) -> Iterator[tuple[str, Image]]:
+                           data):
         data_type = unpack_from('>I', data)[0]
         image_name = 'front_cover'
         image_data = data[8:]
@@ -781,10 +762,10 @@ class _MP4(TinyTag):
 
     @classmethod
     def _parse_custom_field(cls,
-                            data: bytes) -> Iterator[tuple[str, list[str]]]:
+                            data):
         fh = BytesIO(data)
         field_name = None
-        values: list[str] = []
+        values = []
         atom_type, _header_size, atom_size = cls._read_atom_header(fh)
         while atom_type is not None and atom_size is not None:
             if atom_type == b'name':
@@ -807,7 +788,7 @@ class _MP4(TinyTag):
             yield field_name, values
 
     @classmethod
-    def _parse_uuid(cls, data: bytes) -> Iterator[tuple[str, str]]:
+    def _parse_uuid(cls, data):
         uuid_len = 16
         uuid = data[:uuid_len]
         if uuid == (
@@ -816,7 +797,7 @@ class _MP4(TinyTag):
             yield 'other.xmp', data[uuid_len:].decode('utf-8', 'replace')
 
     @classmethod
-    def _parse_mp4a(cls, data: bytes) -> Iterator[tuple[str, str | float]]:
+    def _parse_mp4a(cls, data):
         # this atom also contains the esds atom:
         # https://ffmpeg.org/doxygen/0.6/mov_8c-source.html
         # http://xhelmboyx.tripod.com/formats/mp4-layout.txt
@@ -832,7 +813,7 @@ class _MP4(TinyTag):
             yield 'samplerate', samplerate
 
         # ES Description Atom
-        def _read_descriptor_size(data: bytes, offset: int) -> tuple[int, int]:
+        def _read_descriptor_size(data, offset):
             size = 0
             continuation = 1 << 7
             for _i in range(4):
@@ -857,25 +838,27 @@ class _MP4(TinyTag):
         avg_br = unpack_from('>I', data, offset)[0]
         if avg_br > 0:
             yield 'bitrate', avg_br / 1000  # kbit/s
-        offset += 5
+        offset += 4
 
-        # Decoder Specific Info
-        _size, offset = _read_descriptor_size(data, offset)
-        first = data[offset]
-        second = data[offset + 1]
-        audio_object_type = first >> 3
-        if audio_object_type == 31:
-            # Read extended value
-            extended = ((first & 0x07) << 3) | (second >> 5)
-            audio_object_type = 32 + extended
-        if audio_object_type:
-            codec += f'.{audio_object_type}'
+        # Decoder Specific Info (optional)
+        if len(data) > offset:
+            descriptor_tag = data[offset]
+            offset += 1
+            if descriptor_tag == cls._DECODER_SPECIFIC_INFO_TAG:
+                _size, offset = _read_descriptor_size(data, offset)
+                first = data[offset]
+                audio_object_type = first >> 3
+                if audio_object_type == 31:
+                    # Read extended value
+                    extended = ((first & 0x07) << 3) | (data[offset + 1] >> 5)
+                    audio_object_type = 32 + extended
+                codec += f'.{audio_object_type}'
         if object_type:
             yield 'codec', codec
             yield 'is_lossless', codec in cls._LOSSLESS_CODECS
 
     @classmethod
-    def _parse_alac(cls, data: bytes) -> Iterator[tuple[str, str | int]]:
+    def _parse_alac(cls, data):
         # https://github.com/macosforge/alac/blob/master/ALACMagicCookieDescription.txt
         yield 'codec', 'alac'
         yield 'is_lossless', True
@@ -892,7 +875,7 @@ class _MP4(TinyTag):
             yield 'samplerate', samplerate
 
     @classmethod
-    def _parse_mvhd(cls, data: bytes) -> Iterator[tuple[str, float]]:
+    def _parse_mvhd(cls, data):
         # http://stackoverflow.com/a/3639993/1191373
         version = data[0]
         # jump over flags, create & mod times
@@ -1060,13 +1043,13 @@ class _ID3(TinyTag):
     )
     _UNKNOWN_IMAGE_TYPE = 'other.unknown'
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self._only_id3 = False
-        self._modern_grouping_values: list[str] = []
-        self._legacy_grouping_values: list[str] = []
+        self._modern_grouping_values = []
+        self._legacy_grouping_values = []
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         audio_offset = fh.tell()
         tag_size = 0
         if self._parse_tags:
@@ -1111,7 +1094,7 @@ class _ID3(TinyTag):
         self._tags_parsed = self._parse_tags
         self._duration_parsed = self._parse_duration
 
-    def _parse_id3v2_header(self, fh: BinaryIO) -> tuple[int, bool, int]:
+    def _parse_id3v2_header(self, fh):
         size = major = 0
         extended = False
         # for info on the specs, see: http://id3.org/Developer%20Information
@@ -1126,7 +1109,7 @@ class _ID3(TinyTag):
                 print(f'Found id3 v2.{major} tag with size {size}')
         return size, extended, major
 
-    def _parse_id3v2(self, fh: BinaryIO) -> int:
+    def _parse_id3v2(self, fh):
         size, extended, major = self._parse_id3v2_header(fh)
         if size <= 0:
             return size
@@ -1143,14 +1126,14 @@ class _ID3(TinyTag):
         self._set_grouping_work_fields()
         return size
 
-    def _parse_id3v1(self, fh: BinaryIO) -> bool:
+    def _parse_id3v1(self, fh):
         content = fh.read(128 if self._parse_tags else 3)
         if not content.startswith(b'TAG'):  # check if this is an ID3 v1 tag
             return False
         if not self._parse_tags:
             return True
 
-        def asciidecode(x: bytes) -> str:
+        def asciidecode(x):
             return self._unpad(
                 x.decode(self._default_encoding or 'latin1', 'replace'))
         # Only set fields that were not set by ID3v2 tags, as ID3v1
@@ -1181,14 +1164,14 @@ class _ID3(TinyTag):
                 self._set_field('genre', self._ID3V1_GENRES[genre_id])
         return True
 
-    def _set_custom_field(self, custom_field_name: str, value: str) -> None:
+    def _set_custom_field(self, custom_field_name, value):
         custom_field_name_lower = custom_field_name.lower()
         field_name = self._ID3_MAPPING_CUSTOM.get(
             custom_field_name_lower,
             self._OTHER_PREFIX + custom_field_name_lower)
         self._set_field(field_name, value)
 
-    def _set_grouping_work_fields(self) -> None:
+    def _set_grouping_work_fields(self):
         # iTunes 12.5.4.42 added a new GRP1 frame for 'grouping', and
         # repurposed the TIT1 frame for 'work'. Handle this mess here.
         if self._modern_grouping_values:
@@ -1202,10 +1185,10 @@ class _ID3(TinyTag):
 
     @classmethod
     def _create_tag_image(cls,
-                          data: bytes,
-                          pic_type: int,
-                          mime_type: str | None = None,
-                          description: str | None = None) -> tuple[str, Image]:
+                          data,
+                          pic_type,
+                          mime_type=None,
+                          description=None):
         field_name = cls._UNKNOWN_IMAGE_TYPE
         if 0 <= pic_type <= len(cls._IMAGE_TYPES):
             field_name = cls._IMAGE_TYPES[pic_type]
@@ -1220,8 +1203,8 @@ class _ID3(TinyTag):
         return field_name, image
 
     def _parse_image(self,
-                     frame_id: bytes,
-                     content: bytes) -> tuple[str, Image]:
+                     frame_id,
+                     content):
         # See section 4.14: http://id3.org/id3v2.4.0-frames
         encoding = content[0]
         if frame_id == b'PIC':  # ID3 v2.2:
@@ -1249,13 +1232,13 @@ class _ID3(TinyTag):
             content[desc_end_pos:], pic_type, mime_type, desc)
 
     @staticmethod
-    def _lrc_timestamp(seconds: float) -> str:
+    def _lrc_timestamp(seconds):
         cs = int(seconds * 100)
         minutes, cs = divmod(cs, 6000)
         seconds, cs = divmod(cs, 100)
         return f"{minutes:02d}:{seconds:02d}.{cs:02d}"
 
-    def _parse_synced_lyrics(self, content: bytes) -> str:
+    def _parse_synced_lyrics(self, content):
         # Convert ID3 synced lyrics to LRC format
         lyrics = ""
         content_length = len(content)
@@ -1289,9 +1272,9 @@ class _ID3(TinyTag):
         return lyrics
 
     def _parse_frame(self,
-                     fh: BinaryIO,
-                     total_size: int,
-                     id3version: int | None = None) -> int:
+                     fh,
+                     total_size,
+                     id3version=None):
         # ID3v2.2 especially ugly. see: http://id3.org/id3v2-00
         header_len = parsed_size = 6 if id3version == 2 else 10
         frame_size_bytes = 3 if id3version == 2 else 4
@@ -1302,7 +1285,6 @@ class _ID3(TinyTag):
         frame_id = header[:frame_size_bytes]
         if frame_id in self._EMPTY_FRAME_IDS:
             return -1
-        frame_size: int
         if frame_size_bytes == 3:
             frame_size = int.from_bytes(header[3:6], 'big')
         elif is_synchsafe_int:
@@ -1419,9 +1401,9 @@ class _ID3(TinyTag):
         return parsed_size
 
     @staticmethod
-    def _find_string_end_pos(content: bytes,
-                             encoding: int = 0x00,
-                             start_pos: int = 0) -> int:
+    def _find_string_end_pos(content,
+                             encoding=0x00,
+                             start_pos=0):
         # pylint: disable=consider-using-in
         # latin1 and utf-8 are 1 byte
         if encoding == 0x00 or encoding == 0x03:
@@ -1434,7 +1416,7 @@ class _ID3(TinyTag):
                 break
         return start_pos if end_pos < 0 else end_pos
 
-    def _decode_string(self, value: bytes, encoding: int | None = None) -> str:
+    def _decode_string(self, value, encoding=None):
         if encoding == 0x00:  # ISO-8859-1 (but allow override)
             encoding_name = self._default_encoding or 'ISO-8859-1'
         elif encoding == 0x01:  # UTF-16 with BOM
@@ -1456,7 +1438,7 @@ class _ID3(TinyTag):
         return self._unpad(value.decode(encoding_name, 'replace'))
 
     @staticmethod
-    def _unsynchsafe(data: bytes, offset: int = 0) -> int:
+    def _unsynchsafe(data, offset=0):
         return (
             (data[offset] << 21)
             | (data[offset + 1] << 14)
@@ -1518,11 +1500,11 @@ class _MPEG(TinyTag):
         1,  # 11 Single channel (Mono)
     )
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self._end_padding = 0
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         self.mime_type = 'audio/mpeg'
         if not self._parse_duration:
             return
@@ -1532,7 +1514,7 @@ class _MPEG(TinyTag):
         frame_size_accu = 0
         frames = 0  # count frames for determining mp3 duration
         bitrate_accu = 0    # add up bitrates to find average bitrate to detect
-        last_bitrates: set[int] = set()  # CBR mp3s (many frames with same brs)
+        last_bitrates = set()  # CBR mp3s (many frames with same brs)
         # seek to first position after id3 tag (speedup for large header)
         first_id = None
         audio_offset = fh.tell()
@@ -1631,7 +1613,7 @@ class _MPEG(TinyTag):
         self._duration_parsed = True
 
     @staticmethod
-    def _parse_xing_header(content: bytes, offset: int) -> tuple[int, int]:
+    def _parse_xing_header(content, offset):
         # see: http://www.mp3-tech.org/programmer/sources/vbrheadersdk.zip
         offset += 4  # skip header ID
         header_flags = unpack_from('>i', content, offset)[0]
@@ -1646,7 +1628,7 @@ class _MPEG(TinyTag):
         return frames, byte_count
 
     @staticmethod
-    def _parse_vbri_header(content: bytes, offset: int) -> tuple[int, int]:
+    def _parse_vbri_header(content, offset):
         # https://teslabs.com/openplayer/docs/docs/specs/mp3_structure2.pdf
         offset += 10
         byte_count = unpack_from('>I', content, offset)[0]
@@ -1708,14 +1690,14 @@ class _Ogg(TinyTag):
         'work': 'other.work'
     }
 
-    def __init__(self) -> None:
+    def __init__(self):
         super().__init__()
         self._granule_pos = 0
         self._audio_size = 0  # size of opus audio stream
-        self._granule_pos_serial: int | None = None
-        self._audio_size_serial: int | None = None
+        self._granule_pos_serial = None
+        self._audio_size_serial = None
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         check_flac_second_packet = False
         check_speex_second_packet = False
         preskip = 0  # number of samples to skip in opus stream
@@ -1828,10 +1810,10 @@ class _Ogg(TinyTag):
     @classmethod
     def _parse_vorbis_comment(
         cls,
-        fh: BinaryIO,
-        load_image: bool = False,
-        read_data: bool = True
-    ) -> Iterator[tuple[str, str | int | Image]]:
+        fh,
+        load_image=False,
+        read_data=True
+    ):
         # for the spec, see: http://xiph.org/vorbis/doc/v-comment.html
         # discnumber tag based on: https://en.wikipedia.org/wiki/Vorbis_comment
         # https://sno.phy.queensu.ca/~phil/exiftool/TagNames/Vorbis.html
@@ -1873,7 +1855,7 @@ class _Ogg(TinyTag):
                     else:
                         yield fieldname, value
 
-    def _set_vorbis_comment_fields(self, fh: BinaryIO) -> None:
+    def _set_vorbis_comment_fields(self, fh):
         for fieldname, value in self._parse_vorbis_comment(
             fh, self._load_image
         ):
@@ -1883,9 +1865,9 @@ class _Ogg(TinyTag):
                 continue
             self._set_field(fieldname, value)
 
-    def _parse_pages(self, fh: BinaryIO) -> Iterator[tuple[bytearray, int]]:
+    def _parse_pages(self, fh):
         # for the spec, see: https://wiki.xiph.org/Ogg
-        packets: dict[int, bytearray] = {}
+        packets = {}
         last_granule_pos = 0
         last_audio_size = 0
         header_len = 27
@@ -1983,7 +1965,7 @@ class _Wave(TinyTag):
         0xf1ac,  # FLAC
     }
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         # http://www-mmsp.ece.mcgill.ca/Documents/AudioFormats/WAVE/WAVE.html
         # https://en.wikipedia.org/wiki/WAV
         header = fh.read(12)
@@ -2084,7 +2066,7 @@ class _Flac(TinyTag):
     _VORBIS_COMMENT = 4
     _PICTURE = 6
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         header = fh.read(4)
         if not header.startswith(b'fLaC'):
             raise ParseError('Invalid FLAC header')
@@ -2170,8 +2152,8 @@ class _Flac(TinyTag):
 
     @classmethod
     def _parse_image(cls,
-                     fh: BinaryIO,
-                     read_data: bool = True) -> tuple[str, Image] | None:
+                     fh,
+                     read_data=True):
         # https://xiph.org/flac/format.html#metadata_block_picture
         mime_type = None
         pic_type, mime_type_len = unpack('>II', fh.read(8))
@@ -2268,7 +2250,7 @@ class _ASF(TinyTag):
         b'\xCB\xCF\x7A\xBE\xA9\x97\xE8\x42\x9C\x71\x99\x94\x91\xE3\xAF\xAC'
     )
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         # http://www.garykessler.net/library/file_sigs.html
         # http://web.archive.org/web/20131203084402/http://msdn.microsoft.com/en-us/library/bb643323.aspx#_Toc521913958
         header = fh.read(30)
@@ -2384,10 +2366,10 @@ class _ASF(TinyTag):
         self._tags_parsed = self._parse_tags
 
     def _parse_value(self,
-                     fh: BytesIO,
-                     name: str,
-                     value_type: int,
-                     value_len: int) -> None:
+                     fh,
+                     name,
+                     value_type,
+                     value_len):
         # Unicode string
         if value_type == 0:
             value = self._unpad(
@@ -2457,7 +2439,7 @@ class _Aiff(TinyTag):
         'FL64',
     }
 
-    def _parse(self, fh: BinaryIO) -> None:
+    def _parse(self, fh):
         header = fh.read(12)
         if (not header.startswith(b'FORM')
                 or not header.startswith((b'AIFC', b'AIFF'), 8)):

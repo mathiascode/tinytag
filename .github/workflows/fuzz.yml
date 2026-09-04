@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: 2026 tinytag Contributors
+# SPDX-License-Identifier: MIT
+
+name: Fuzz
+on: [workflow_dispatch]
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: 3.14
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: python -m pip install atheris
+
+      - name: Build package
+        run: |
+          python -m fuzz.fuzz_parser tinytag/tests/samples \
+            -atheris_runs=500000 -timeout=1 \
+            2>&1 | tee parser.log
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fuzz
+          path: |
+            tinytag/tests/samples/
+            parser.log

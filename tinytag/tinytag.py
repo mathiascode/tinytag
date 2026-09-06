@@ -214,7 +214,6 @@ class TinyTag:
     def _get_parser_for_filename(cls, filename: str) -> type[TinyTag] | None:
         if cls._file_extension_mapping is None:
             cls._file_extension_mapping = {
-                ('.mp1', '.mp2', '.mp3', '.flac'): _ID3,
                 ('.oga', '.ogv', '.ogg', '.opus', '.spx'): _Ogg,
                 ('.wav',): _Wave,
                 ('.wma', '.wmv', '.asf'): _ASF,
@@ -235,8 +234,6 @@ class TinyTag:
     ) -> type[TinyTag] | None:
         # https://en.wikipedia.org/wiki/List_of_file_signatures
         header = filehandle.read(30)
-        if header.startswith(b'ID3'):
-            return _ID3
         if (len(header) >= 2
                 and header[0] == 0xFF and (header[1] & 0xE0) == 0xE0):
             footer = None

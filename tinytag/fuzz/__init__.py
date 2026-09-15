@@ -5,11 +5,12 @@
 # pylint: disable=missing-module-docstring
 # pyright: reportAttributeAccessIssue=false,reportMissingModuleSource=false
 # pyright: reportUnknownMemberType=false
+# pyright: reportUnnecessaryTypeIgnoreComment=false
 
 import io
 import sys
 
-import atheris
+import atheris  # type: ignore
 
 from tinytag import TinyTag, TinyTagException
 

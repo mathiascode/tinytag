@@ -27,7 +27,7 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p fuzz/artifacts
-          python -m fuzz.fuzz_tinytag tinytag/tests/samples \
+          python -m tinytag.fuzz tinytag/tests/samples \
             -atheris_runs=5000000 -timeout=1 -rss_limit_mb=80 -artifact_prefix=fuzz/artifacts/ \
             2>&1 | tee fuzz/fuzz.log
 
